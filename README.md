@@ -1,80 +1,84 @@
-# caixa-simulador-financiamento
+# Simulador de Financiamentos - CAIXA
 
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
+API REST para simulação de financiamentos com juros compostos.
 
-If you want to learn more about Quarkus, please visit its website: <https://quarkus.io/>.
+**Stack:** Java 25 · Quarkus 3.x · H2 in-memory · Hibernate ORM Panache · Jacoco
 
-## Running the application in dev mode
+---
 
-You can run your application in dev mode that enables live coding using:
+## Pré-requisitos
 
-```shell script
+- Java 25+
+- Maven 3.9+ (ou use o wrapper `./mvnw` incluído)
+
+Sem Docker. Sem scripts SQL. A aplicação sobe 100% nativa.
+
+---
+
+## Executar os testes e validar cobertura
+
+```bash
+./mvnw test
+```
+
+O relatório de cobertura Jacoco é gerado em:
+
+```
+target/jacoco-report/index.html
+```
+
+---
+
+## Rodar a aplicação em modo dev
+
+```bash
 ./mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at <http://localhost:8080/q/dev/>.
+A API estará disponível em `http://localhost:8080`.
 
-## Packaging and running the application
+---
 
-The application can be packaged using:
+## Endpoints
 
-```shell script
-./mvnw package
+### POST /simulacoes
+Cria uma nova simulação de financiamento.
+
+**Body:**
+```json
+{
+  "valorInicial": 1000.00,
+  "taxaJurosMensal": 1.5,
+  "prazoMeses": 12
+}
 ```
 
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
-Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
-
-The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
-
-If you want to build an _über-jar_, execute the following command:
-
-```shell script
-./mvnw package -Dquarkus.package.jar.type=uber-jar
+**Resposta 201:**
+```json
+{
+  "id": 1,
+  "valorInicial": 1000.00,
+  "taxaJurosMensal": 1.5,
+  "prazoMeses": 12,
+  "valorTotalFinal": 1195.6182,
+  "valorTotalJuros": 195.6182,
+  "memoriaCalculo": [
+    { "mes": 1, "saldoInicial": 1000.0000, "juro": 15.0000, "saldoFinal": 1015.0000 },
+    ...
+  ]
+}
 ```
 
-The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+### GET /simulacoes/{id}
+Consulta uma simulação existente.
 
-## Creating a native executable
+- `200 OK` — simulação encontrada
+- `404 Not Found` — ID não existe
 
-You can create a native executable using:
+---
 
-```shell script
-./mvnw package -Dnative
-```
+## Documentação OpenAPI / Swagger
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using:
-
-```shell script
-./mvnw package -Dnative -Dquarkus.native.container-build=true
-```
-
-You can then execute your native executable with: `./target/caixa-simulador-financiamento-1.0-runner`
-
-If you want to learn more about building native executables, please consult <https://quarkus.io/guides/maven-tooling>.
-
-## Related Guides
-
-- JDBC Driver - H2 ([guide](https://quarkus.io/guides/datasource)): Connect to the H2 database via JDBC
-- Hibernate Validator ([guide](https://quarkus.io/guides/validation)): Bean validation using Hibernate Validator and Jakarta Validation annotations
-- REST Jackson ([guide](https://quarkus.io/guides/rest#json-serialisation)): Jackson serialization support for Quarkus REST. This extension is not compatible with the quarkus-resteasy extension, or any of the extensions that depend on it
-- Jacoco - Code Coverage ([guide](https://quarkus.io/guides/tests-with-coverage)): Jacoco test coverage support
-- Hibernate ORM with Panache ([guide](https://quarkus.io/guides/hibernate-orm-panache)): Simplified JPA/Hibernate data access layer with active record and repository patterns
-
-## Provided Code
-
-### Hibernate ORM
-
-Create your first JPA entity
-
-[Related guide section...](https://quarkus.io/guides/hibernate-orm)
-
-
-[Related Hibernate with Panache section...](https://quarkus.io/guides/hibernate-orm-panache)
-
-
-### REST
-
-Easily start your REST Web Services
-
-[Related guide section...](https://quarkus.io/guides/getting-started-reactive#reactive-jax-rs-resources)
+Disponível em modo dev em:
+- Swagger UI: `http://localhost:8080/q/swagger-ui`
+- Spec JSON: `http://localhost:8080/q/openapi`
