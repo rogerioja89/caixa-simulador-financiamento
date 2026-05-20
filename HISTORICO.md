@@ -442,3 +442,35 @@ O `desafio.pdf` exige na matriz de avaliação: *"Testou cenários de erro e bor
 | `devePropagarSaldoFinalComoSaldoInicialDoMesSeguinte` | `SimulacaoServiceTest` e `SimulacaoServiceUnitTest` |
 
 **Resultado:** 13 dos 22 testes cobrem cenários de erro e borda — mais da metade da suíte vai além do caminho feliz.
+
+---
+
+## Sessão 7 — Discussão sobre comentários no código
+
+### Pergunta do usuário
+
+> "seria interessante colocar pequenos comentários no código para ficar mais fácil o entendimento do examinador do desafio? isso é recomendável e profissional?"
+
+### Decisão
+
+Comentários são recomendáveis **com critério**: apenas onde o "por quê" não é óbvio. Comentar o que o código já diz claramente é verboso e passa impressão de inexperiência. No contexto de desafio técnico, um comentário bem colocado demonstra decisão consciente.
+
+#### Pontos que valem um comentário neste projeto
+
+| Onde | Motivo |
+|---|---|
+| Campos `public` nas entidades | Examinador de Java clássico pode achar erro de encapsulamento — deixa claro que é o padrão Panache intencional |
+| `SCALE = 4` no service + `DISPLAY_SCALE = 2` no mapper | Separação entre precisão interna e apresentação é decisão arquitetural não óbvia |
+| `TxType.SUPPORTS` no `buscarPorId` | Comportamento transacional não-padrão sem motivo evidente |
+| `divide(..., 8, ROUNDING)` na taxa | Escala 8 no divisor percentual evita propagação de erro — difere do restante |
+
+#### O que não comentar
+
+- Loop de cálculo mês a mês (legível pelo próprio código)
+- Endpoints REST (já documentados via anotações OpenAPI)
+- DTOs e mapper (nomes auto-descritivos)
+- Repositório (trivialmente um `PanacheRepository`)
+
+### Status
+
+Comentários identificados mas **não aplicados** — usuário optou por não implementar neste momento.
