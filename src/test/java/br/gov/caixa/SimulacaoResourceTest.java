@@ -40,9 +40,9 @@ class SimulacaoResourceTest {
             .body("id", notNullValue())
             .body("memoriaCalculo.size()", is(12))
             .body("memoriaCalculo[0].mes", is(1))
-            .body("memoriaCalculo[0].saldoInicial", comparesEqualTo(new BigDecimal("1000.0000")))
-            .body("memoriaCalculo[0].juro", comparesEqualTo(new BigDecimal("15.0000")))
-            .body("memoriaCalculo[0].saldoFinal", comparesEqualTo(new BigDecimal("1015.0000")));
+            .body("memoriaCalculo[0].saldoInicial", comparesEqualTo(new BigDecimal("1000.00")))
+            .body("memoriaCalculo[0].juro", comparesEqualTo(new BigDecimal("15.00")))
+            .body("memoriaCalculo[0].saldoFinal", comparesEqualTo(new BigDecimal("1015.00")));
     }
 
     @Test
@@ -63,9 +63,9 @@ class SimulacaoResourceTest {
             .body("taxaJurosMensal", comparesEqualTo(new BigDecimal("1.5")))
             .body("prazoMeses", is(6))
             .body("memoriaCalculo[0].mes", is(1))
-            .body("memoriaCalculo[0].saldoInicial", comparesEqualTo(new BigDecimal("1000.0000")))
-            .body("memoriaCalculo[0].juro", comparesEqualTo(new BigDecimal("15.0000")))
-            .body("memoriaCalculo[0].saldoFinal", comparesEqualTo(new BigDecimal("1015.0000")));
+            .body("memoriaCalculo[0].saldoInicial", comparesEqualTo(new BigDecimal("1000.00")))
+            .body("memoriaCalculo[0].juro", comparesEqualTo(new BigDecimal("15.00")))
+            .body("memoriaCalculo[0].saldoFinal", comparesEqualTo(new BigDecimal("1015.00")));
     }
 
     @Test
@@ -92,7 +92,7 @@ class SimulacaoResourceTest {
             .body("prazoMeses", is(6))
             .body("memoriaCalculo.size()", is(6))
             .body("valorInicial", comparesEqualTo(new BigDecimal("5000.00")))
-            .body("memoriaCalculo[0].juro", comparesEqualTo(new BigDecimal("100.0000")));
+            .body("memoriaCalculo[0].juro", comparesEqualTo(new BigDecimal("100.00")));
     }
 
     @Test

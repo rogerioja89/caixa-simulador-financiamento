@@ -1,1 +1,0 @@
--- Dados iniciais opcionais para dev/test. Deixar vazio pois o schema é gerado automaticamente.

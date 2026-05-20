@@ -27,11 +27,11 @@ class SimulacaoServiceTest {
 
         assertEquals(1, response.memoriaCalculo.size());
         assertEquals(1, response.memoriaCalculo.get(0).mes);
-        assertEquals(0, new BigDecimal("1000.0000").compareTo(response.memoriaCalculo.get(0).saldoInicial));
-        assertEquals(0, new BigDecimal("15.0000").compareTo(response.memoriaCalculo.get(0).juro));
-        assertEquals(0, new BigDecimal("1015.0000").compareTo(response.memoriaCalculo.get(0).saldoFinal));
-        assertEquals(0, new BigDecimal("1015.0000").compareTo(response.valorTotalFinal));
-        assertEquals(0, new BigDecimal("15.0000").compareTo(response.valorTotalJuros));
+        assertEquals(0, new BigDecimal("1000.00").compareTo(response.memoriaCalculo.get(0).saldoInicial));
+        assertEquals(0, new BigDecimal("15.00").compareTo(response.memoriaCalculo.get(0).juro));
+        assertEquals(0, new BigDecimal("1015.00").compareTo(response.memoriaCalculo.get(0).saldoFinal));
+        assertEquals(0, new BigDecimal("1015.00").compareTo(response.valorTotalFinal));
+        assertEquals(0, new BigDecimal("15.00").compareTo(response.valorTotalJuros));
     }
 
     @Test
