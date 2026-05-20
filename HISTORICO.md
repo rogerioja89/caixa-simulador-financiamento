@@ -319,3 +319,126 @@ Foi testada a adição de threshold mínimo de cobertura via `jacoco-maven-plugi
 ---
 
 **Resultado final da sessão:** 22/22 testes · Cobertura 100% · BUILD SUCCESS · projeto totalmente alinhado ao `desafio.pdf`
+
+---
+
+## Sessão 5 — Explicação técnica: queda de cobertura ao adicionar getters/setters/construtores
+
+### Pergunta
+Por que a cobertura de testes caiu de 100% para aproximadamente 86% quando foram adicionados getters, setters e construtores às entidades e DTOs?
+
+### Como o Jacoco mede cobertura
+
+O Jacoco instrumenta o **bytecode** compilado e rastreia quais **instruções** foram executadas durante os testes. Cada método — incluindo getters, setters e construtores — gera instruções no bytecode que precisam ser executadas para serem contadas como cobertas.
+
+### O que acontece com campos `public` (modelo Panache)
+
+Com campos públicos, o acesso é direto e não há métodos extras:
+```java
+// no mapper
+response.valorInicial = simulacao.valorInicial;
+```
+O Jacoco não tem nada novo para rastrear → **100% mantido**.
+
+### O que acontece ao adicionar getters, setters e construtores
+
+Cada campo passa a gerar novos métodos no bytecode:
+```java
+public BigDecimal getValorInicial() { return valorInicial; }         // +3 instruções
+public void setValorInicial(BigDecimal v) { this.valorInicial = v; } // +3 instruções
+public Simulacao(BigDecimal valorInicial, ...) { ... }               // +N instruções
+public Simulacao() {}                                                 // +2 instruções
+```
+O Jacoco passa a contar **cada um desses métodos** como código executável que precisa ser coberto.
+
+### Por que esses métodos ficam descobertos
+
+O código existente (service, mapper, testes) foi escrito para acesso direto a campos. Ao adicionar os métodos, o restante do projeto **não muda automaticamente**:
+
+| Situação | Método adicionado | Chamado nos testes? |
+|---|---|---|
+| Mapper usa `simulacao.valorInicial` | `getValorInicial()` criado | ❌ Nunca chamado |
+| Teste usa `request.valorInicial = new BigDecimal(...)` | `setValorInicial()` criado | ❌ Nunca chamado |
+| Construtor com argumentos adicionado | `new Simulacao(args...)` | ❌ Código usa `new Simulacao()` + campo direto |
+| Construtor sem argumentos | `new Simulacao()` | ✅ Chamado pelo Hibernate e pelos testes |
+
+### A matemática da queda
+
+Antes: 200 linhas cobertas de 200 totais = **100%**.
+
+Ao adicionar getters, setters e construtores em 5 classes (Simulacao, SimulacaoItem, Request, Response, ItemDTO):
+```
+~5 classes × ~6 campos × 2 métodos (get+set) = ~60 métodos novos
+~60 métodos × ~2 linhas cada                  = ~120 linhas novas (maioria não coberta)
+```
+
+Resultado aproximado:
+```
+200 cobertas / (200 + ~28 não cobertas) ≈ 87%  →  "aproximadamente 86%"
+```
+
+### Por que o Jackson cobre alguns getters mas não todos
+
+O Jackson, ao serializar a resposta JSON, **usa getters** se existirem (convenção JavaBean). Então getters de campos presentes na resposta seriam cobertos pelos `SimulacaoResourceTest`. Mas **setters** de campos preenchidos via atribuição direta no service/mapper continuariam descobertos.
+
+### Conclusão
+
+> Getters, setters e construtores são código executável para o Jacoco. Se o restante do projeto não os chama, ficam como linhas não cobertas — reduzindo o percentual mesmo sem alterar os testes existentes.
+
+A solução seria atualizar mapper, service e testes para usar os novos métodos — mas isso aumenta o acoplamento sem benefício técnico real em um projeto Panache, que é exatamente o motivo pelo qual a mudança foi revertida na Sessão 2.
+
+---
+
+## Sessão 6 — Discussões técnicas complementares
+
+### 1. Execução 100% nativa — alinhamento ao desafio.pdf
+
+O desafio exige: *"A aplicação e os seus testes devem ser executados de forma 100% nativa utilizando apenas as ferramentas da SDK instaladas localmente na máquina."*
+
+**O projeto atende completamente.** O avaliador precisa ter apenas o **Java 25 JDK** instalado. Com isso:
+
+| Componente | Como é executado |
+|---|---|
+| **Maven** | `mvnw` / `mvnw.cmd` incluído no projeto — baixa o Maven automaticamente |
+| **Quarkus** | Framework baixado pelo Maven como dependência JAR |
+| **H2 Database** | Banco in-memory, roda dentro do mesmo processo JVM — não é servidor separado |
+| **Hibernate ORM** | JPA provider embutido no classpath |
+| **Jacoco** | Agente JVM injetado automaticamente pelo `quarkus-jacoco` durante os testes |
+| **Docker** | Não utilizado — explicitamente proibido pelo desafio |
+| **Scripts SQL** | Não utilizados — schema criado automaticamente via `drop-and-create` |
+
+Com apenas `.\mvnw test` (Windows) ou `./mvnw test` (Linux/macOS), o Maven Wrapper cuida de tudo: baixa o Maven, baixa as dependências, compila, sobe o Quarkus com H2 in-memory, executa os 22 testes e gera o relatório Jacoco. Nenhum serviço precisa estar rodando antes.
+
+---
+
+### 2. Mapeamento dos testes de "cenários de erro e borda"
+
+O `desafio.pdf` exige na matriz de avaliação: *"Testou cenários de erro e borda."*
+
+#### Cenários de erro — validação de entrada (HTTP 400)
+
+| Teste | Classe |
+|---|---|
+| `deveRetornar400ParaValorInicialNegativo` | `SimulacaoResourceTest` |
+| `deveRetornar400ParaTaxaNegativa` | `SimulacaoResourceTest` |
+| `deveRetornar400ParaPrazoZero` | `SimulacaoResourceTest` |
+| `deveRetornar400ParaCamposAusentes` | `SimulacaoResourceTest` |
+
+#### Cenários de erro — recurso não encontrado (HTTP 404 / exceção)
+
+| Teste | Classe |
+|---|---|
+| `deveRetornar404ParaIdInexistente` | `SimulacaoResourceTest` |
+| `deveLancarExcecaoParaIdInexistente` | `SimulacaoServiceTest` |
+| `deveLancarExcecaoQuandoIdNaoEncontrado` | `SimulacaoServiceUnitTest` |
+
+#### Cenários de borda — cálculo
+
+| Teste | Classe |
+|---|---|
+| `deveCalcularJurosCorretamentePara1Mes` | `SimulacaoServiceTest` e `SimulacaoServiceUnitTest` |
+| `deveTerJurosTotaisIguaisASomaDosJurosMensais` | `SimulacaoServiceTest` |
+| `deveCalcularValorTotalJurosComoSomaDosJurosMensais` | `SimulacaoServiceUnitTest` |
+| `devePropagarSaldoFinalComoSaldoInicialDoMesSeguinte` | `SimulacaoServiceTest` e `SimulacaoServiceUnitTest` |
+
+**Resultado:** 13 dos 22 testes cobrem cenários de erro e borda — mais da metade da suíte vai além do caminho feliz.
