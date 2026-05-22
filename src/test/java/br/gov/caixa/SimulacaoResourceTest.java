@@ -69,6 +69,24 @@ class SimulacaoResourceTest {
     }
 
     @Test
+    void deveRetornarTotaisCalculadosNaResposta() {
+        given()
+            .contentType(ContentType.JSON)
+            .body("""
+                {
+                    "valorInicial": 1000.00,
+                    "taxaJurosMensal": 2.0,
+                    "prazoMeses": 2
+                }
+                """)
+            .when().post("/simulacoes")
+            .then()
+            .statusCode(201)
+            .body("valorTotalFinal", comparesEqualTo(new BigDecimal("1040.40")))
+            .body("valorTotalJuros", comparesEqualTo(new BigDecimal("40.40")));
+    }
+
+    @Test
     void deveRetornarSimulacaoPorId() {
         Long id = given()
             .contentType(ContentType.JSON)
