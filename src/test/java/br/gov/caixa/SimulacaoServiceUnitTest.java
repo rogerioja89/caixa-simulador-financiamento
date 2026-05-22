@@ -34,7 +34,7 @@ class SimulacaoServiceUnitTest {
     SimulacaoService service;
 
     @Test
-    void deveCalcularJurosCorretamentePara1Mes() {
+    void deveCalcularCorretamentePara1Mes() {
         SimulacaoRequest request = criarRequest("1000.00", "1.5", 1);
 
         SimulacaoResponse response = service.simular(request);
@@ -45,6 +45,70 @@ class SimulacaoServiceUnitTest {
         assertEquals(0, new BigDecimal("1015.00").compareTo(response.memoriaCalculo.get(0).saldoFinal));
         assertEquals(0, new BigDecimal("1015.00").compareTo(response.valorTotalFinal));
         assertEquals(0, new BigDecimal("15.00").compareTo(response.valorTotalJuros));
+    }
+
+    @Test
+    void deveCalcularCorretamenteParaPrazoLongo() {
+        SimulacaoRequest request = criarRequest("1000.00", "1.5", 360);
+
+        SimulacaoResponse response = service.simular(request);
+
+        assertEquals(360, response.memoriaCalculo.size());
+        assertEquals(1, response.memoriaCalculo.get(0).mes);
+        assertEquals(360, response.memoriaCalculo.get(359).mes);
+        for (int i = 0; i < 359; i++) {
+            assertEquals(0, response.memoriaCalculo.get(i).saldoFinal
+                    .compareTo(response.memoriaCalculo.get(i + 1).saldoInicial));
+        }
+    }
+
+    @Test
+    void deveCalcularCorretamenteComTaxaPequena() {
+        // 1000.00 * 0.0001 = 0.10 — com double arredondaria para 0.00
+        SimulacaoRequest request = criarRequest("1000.00", "0.01", 1);
+
+        SimulacaoResponse response = service.simular(request);
+
+        assertEquals(0, new BigDecimal("0.10").compareTo(response.memoriaCalculo.get(0).juro));
+        assertTrue(response.memoriaCalculo.get(0).juro.compareTo(BigDecimal.ZERO) > 0);
+    }
+
+    @Test
+    void deveCalcularCorretamenteComTaxaAlta() {
+        // com taxa alta, o juro do mês 2 deve incidir sobre o saldoFinal do mês 1, não sobre o valorInicial
+        SimulacaoRequest request = criarRequest("1000.00", "5.0", 2);
+
+        SimulacaoResponse response = service.simular(request);
+
+        assertEquals(0, new BigDecimal("50.00").compareTo(response.memoriaCalculo.get(0).juro));
+        assertEquals(0, new BigDecimal("1050.00").compareTo(response.memoriaCalculo.get(0).saldoFinal));
+        assertEquals(0, new BigDecimal("52.50").compareTo(response.memoriaCalculo.get(1).juro));
+        assertEquals(0, new BigDecimal("1102.50").compareTo(response.memoriaCalculo.get(1).saldoFinal));
+    }
+
+    @Test
+    void deveCalcularCorretamenteComValorInicialPequeno() {
+        // 0.01 com double é impreciso em IEEE 754; com BigDecimal("0.01") é exato
+        SimulacaoRequest request = criarRequest("0.01", "1.5", 1);
+
+        SimulacaoResponse response = service.simular(request);
+
+        // juro interno = 0.0002, exibido como 0.00 por arredondamento — comportamento esperado
+        assertEquals(0, new BigDecimal("0.01").compareTo(response.memoriaCalculo.get(0).saldoInicial));
+        assertEquals(0, new BigDecimal("0.00").compareTo(response.memoriaCalculo.get(0).juro));
+        assertTrue(response.valorTotalFinal.compareTo(request.valorInicial) >= 0);
+    }
+
+    @Test
+    void deveCalcularCorretamenteComValorInicialAlto() {
+        // com double, 999999999.99 perderia os centavos por falta de precisão
+        SimulacaoRequest request = criarRequest("999999999.99", "1.0", 1);
+
+        SimulacaoResponse response = service.simular(request);
+
+        assertEquals(0, new BigDecimal("999999999.99").compareTo(response.memoriaCalculo.get(0).saldoInicial));
+        assertEquals(0, new BigDecimal("10000000.00").compareTo(response.memoriaCalculo.get(0).juro));
+        assertEquals(0, new BigDecimal("1009999999.99").compareTo(response.memoriaCalculo.get(0).saldoFinal));
     }
 
     @Test

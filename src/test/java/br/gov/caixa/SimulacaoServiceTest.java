@@ -21,7 +21,7 @@ class SimulacaoServiceTest {
     SimulacaoService service;
 
     @Test
-    void deveCalcularJurosCorretamentePara1Mes() {
+    void deveCalcularCorretamentePara1Mes() {
         SimulacaoRequest request = criarRequest("1000.00", "1.5", 1);
         SimulacaoResponse response = service.simular(request);
 
@@ -35,7 +35,7 @@ class SimulacaoServiceTest {
     }
 
     @Test
-    void deveGerarMemoriaComTodosMeses() {
+    void deveGerarMemoriaComQuantidadeCorretaDeMeses() {
         SimulacaoRequest request = criarRequest("1000.00", "1.5", 12);
         SimulacaoResponse response = service.simular(request);
 
@@ -73,13 +73,13 @@ class SimulacaoServiceTest {
     }
 
     @Test
-    void deveLancarExcecaoParaIdInexistente() {
+    void deveLancarExcecaoQuandoIdNaoEncontrado() {
         assertThrows(SimulacaoNaoEncontradaException.class,
                 () -> service.buscarPorId(99999L));
     }
 
     @Test
-    void deveRetornarSimulacaoJaPeristida() {
+    void deveRetornarSimulacaoJaPersistida() {
         SimulacaoRequest request = criarRequest("2000.00", "1.0", 6);
         SimulacaoResponse criado = service.simular(request);
 
@@ -91,7 +91,7 @@ class SimulacaoServiceTest {
     }
 
     @Test
-    void deveTerJurosTotaisIguaisASomaDosJurosMensais() {
+    void deveCalcularValorTotalJurosComoSomaDosJurosMensais() {
         SimulacaoRequest request = criarRequest("1000.00", "2.0", 3);
         SimulacaoResponse response = service.simular(request);
 
