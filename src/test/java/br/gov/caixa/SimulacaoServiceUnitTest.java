@@ -64,7 +64,6 @@ class SimulacaoServiceUnitTest {
 
     @Test
     void deveCalcularCorretamenteComTaxaPequena() {
-        // 1000.00 * 0.0001 = 0.10 — com double arredondaria para 0.00
         SimulacaoRequest request = criarRequest("1000.00", "0.01", 1);
 
         SimulacaoResponse response = service.simular(request);
@@ -75,7 +74,6 @@ class SimulacaoServiceUnitTest {
 
     @Test
     void deveCalcularCorretamenteComTaxaAlta() {
-        // com taxa alta, o juro do mês 2 deve incidir sobre o saldoFinal do mês 1, não sobre o valorInicial
         SimulacaoRequest request = criarRequest("1000.00", "5.0", 2);
 
         SimulacaoResponse response = service.simular(request);
@@ -88,12 +86,10 @@ class SimulacaoServiceUnitTest {
 
     @Test
     void deveCalcularCorretamenteComValorInicialPequeno() {
-        // 0.01 com double é impreciso em IEEE 754; com BigDecimal("0.01") é exato
         SimulacaoRequest request = criarRequest("0.01", "1.5", 1);
 
         SimulacaoResponse response = service.simular(request);
 
-        // juro interno = 0.0002, exibido como 0.00 por arredondamento — comportamento esperado
         assertEquals(0, new BigDecimal("0.01").compareTo(response.memoriaCalculo.get(0).saldoInicial));
         assertEquals(0, new BigDecimal("0.00").compareTo(response.memoriaCalculo.get(0).juro));
         assertTrue(response.valorTotalFinal.compareTo(request.valorInicial) >= 0);
@@ -101,7 +97,6 @@ class SimulacaoServiceUnitTest {
 
     @Test
     void deveCalcularCorretamenteComValorInicialAlto() {
-        // com double, 999999999.99 perderia os centavos por falta de precisão
         SimulacaoRequest request = criarRequest("999999999.99", "1.0", 1);
 
         SimulacaoResponse response = service.simular(request);
