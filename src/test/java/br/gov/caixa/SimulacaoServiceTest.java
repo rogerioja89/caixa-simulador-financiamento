@@ -35,6 +35,60 @@ class SimulacaoServiceTest {
     }
 
     @Test
+    void deveCalcularCorretamenteParaPrazoLongo() {
+        SimulacaoRequest request = criarRequest("1000.00", "1.5", 360);
+        SimulacaoResponse response = service.simular(request);
+
+        assertEquals(360, response.memoriaCalculo.size());
+        assertEquals(1, response.memoriaCalculo.get(0).mes);
+        assertEquals(360, response.memoriaCalculo.get(359).mes);
+        for (int i = 0; i < 359; i++) {
+            assertEquals(0, response.memoriaCalculo.get(i).saldoFinal
+                    .compareTo(response.memoriaCalculo.get(i + 1).saldoInicial));
+        }
+    }
+
+    @Test
+    void deveCalcularCorretamenteComTaxaPequena() {
+        SimulacaoRequest request = criarRequest("1000.00", "0.01", 1);
+        SimulacaoResponse response = service.simular(request);
+
+        assertEquals(0, new BigDecimal("0.10").compareTo(response.memoriaCalculo.get(0).juro));
+        assertTrue(response.memoriaCalculo.get(0).juro.compareTo(BigDecimal.ZERO) > 0);
+    }
+
+    @Test
+    void deveCalcularCorretamenteComTaxaAlta() {
+        SimulacaoRequest request = criarRequest("1000.00", "5.0", 2);
+        SimulacaoResponse response = service.simular(request);
+
+        assertEquals(0, new BigDecimal("50.00").compareTo(response.memoriaCalculo.get(0).juro));
+        assertEquals(0, new BigDecimal("1050.00").compareTo(response.memoriaCalculo.get(0).saldoFinal));
+        assertEquals(0, new BigDecimal("52.50").compareTo(response.memoriaCalculo.get(1).juro));
+        assertEquals(0, new BigDecimal("1102.50").compareTo(response.memoriaCalculo.get(1).saldoFinal));
+    }
+
+    @Test
+    void deveCalcularCorretamenteComValorInicialPequeno() {
+        SimulacaoRequest request = criarRequest("0.01", "1.5", 1);
+        SimulacaoResponse response = service.simular(request);
+
+        assertEquals(0, new BigDecimal("0.01").compareTo(response.memoriaCalculo.get(0).saldoInicial));
+        assertEquals(0, new BigDecimal("0.00").compareTo(response.memoriaCalculo.get(0).juro));
+        assertTrue(response.valorTotalFinal.compareTo(request.valorInicial) >= 0);
+    }
+
+    @Test
+    void deveCalcularCorretamenteComValorInicialAlto() {
+        SimulacaoRequest request = criarRequest("999999999.99", "1.0", 1);
+        SimulacaoResponse response = service.simular(request);
+
+        assertEquals(0, new BigDecimal("999999999.99").compareTo(response.memoriaCalculo.get(0).saldoInicial));
+        assertEquals(0, new BigDecimal("10000000.00").compareTo(response.memoriaCalculo.get(0).juro));
+        assertEquals(0, new BigDecimal("1009999999.99").compareTo(response.memoriaCalculo.get(0).saldoFinal));
+    }
+
+    @Test
     void deveGerarMemoriaComQuantidadeCorretaDeMeses() {
         SimulacaoRequest request = criarRequest("1000.00", "1.5", 12);
         SimulacaoResponse response = service.simular(request);

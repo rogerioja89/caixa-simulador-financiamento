@@ -33,6 +33,15 @@ O relatório de cobertura Jacoco é gerado em:
 target/jacoco-report/index.html
 ```
 
+### Suíte de testes
+
+| Classe | Tipo | Testes |
+|---|---|---|
+| `SimulacaoServiceUnitTest` | Unitários (Mockito) | 11 |
+| `SimulacaoServiceTest` | Integração — service + H2 | 13 |
+| `SimulacaoResourceTest` | Integração — HTTP (REST-Assured) | 9 |
+| **Total** | | **33** |
+
 ---
 
 ## Rodar a aplicação em modo dev

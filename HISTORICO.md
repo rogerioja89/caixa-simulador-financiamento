@@ -474,3 +474,143 @@ Comentários são recomendáveis **com critério**: apenas onde o "por quê" nã
 ### Status
 
 Comentários identificados mas **não aplicados** — usuário optou por não implementar neste momento.
+
+---
+
+## Sessão 8 — Expansão e padronização da suíte de testes
+
+### 1. Novos testes unitários de borda em `SimulacaoServiceUnitTest`
+
+Identificado que dois dos 6 testes unitários originais (`deveGerarMemoriaComQuantidadeCorretaDeMeses` e `deveChamarPersistUmaVezAoSimular`) não cobriam cenários de erro ou borda. Foram adicionados 5 novos testes unitários:
+
+| Teste | Borda verificada |
+|---|---|
+| `deveCalcularCorretamenteParaPrazoLongo` | 360 meses — encadeamento correto em todas as 359 transições |
+| `deveCalcularCorretamenteComTaxaPequena` | Taxa 0.01% — `BigDecimal` preserva `0.10`; `double` arredondaria para `0.00` |
+| `deveCalcularCorretamenteComValorInicialAlto` | 999.999.999,99 — `BigDecimal` mantém centavos; `double` perderia precisão |
+| `deveCalcularCorretamenteComTaxaAlta` | Taxa 5% com 2 meses — juro do mês 2 incide sobre saldoFinal do mês 1, não sobre valorInicial |
+| `deveCalcularCorretamenteComValorInicialPequeno` | Valor 0,01 — juro exibido como `0.00` por arredondamento é comportamento correto, não bug |
+
+### 2. Novo teste de resource em `SimulacaoResourceTest`
+
+Identificado que `valorTotalFinal` e `valorTotalJuros` nunca eram verificados via HTTP em nenhum dos testes existentes. Adicionado:
+
+| Teste | O que verifica |
+|---|---|
+| `deveRetornarTotaisCalculadosNaResposta` | `valorTotalFinal = 1040.40` e `valorTotalJuros = 40.40` para 1000.00 a 2.0% por 2 meses |
+
+### 3. Padronização de nomenclatura
+
+#### Renomeações em `SimulacaoServiceUnitTest`
+
+| Antes | Depois |
+|---|---|
+| `deveCalcularJurosCorretamentePara1Mes` | `deveCalcularCorretamentePara1Mes` |
+| `devePreservarPrecisaoComTaxaMuitoPequena` | `deveCalcularCorretamenteComTaxaPequena` |
+| `deveCalcularSemExcecaoComValorInicialMuitoPequeno` | `deveCalcularCorretamenteComValorInicialPequeno` |
+
+#### Renomeações em `SimulacaoServiceTest` (alinhamento com UnitTest + correção de typo)
+
+| Antes | Depois |
+|---|---|
+| `deveCalcularJurosCorretamentePara1Mes` | `deveCalcularCorretamentePara1Mes` |
+| `deveGerarMemoriaComTodosMeses` | `deveGerarMemoriaComQuantidadeCorretaDeMeses` |
+| `deveLancarExcecaoParaIdInexistente` | `deveLancarExcecaoQuandoIdNaoEncontrado` |
+| `deveTerJurosTotaisIguaisASomaDosJurosMensais` | `deveCalcularValorTotalJurosComoSomaDosJurosMensais` |
+| `deveRetornarSimulacaoJa**Peristida**` | `deveRetornarSimulacaoJa**Persistida**` (typo) |
+
+### 4. Mapeamento atualizado de cenários de erro e borda
+
+| Teste | Categoria | Classe |
+|---|---|---|
+| `deveCalcularCorretamentePara1Mes` | Borda — prazo mínimo | UnitTest + ServiceTest |
+| `deveCalcularCorretamenteParaPrazoLongo` | Borda — prazo máximo | UnitTest |
+| `deveCalcularCorretamenteComTaxaPequena` | Borda — precisão taxa mínima | UnitTest |
+| `deveCalcularCorretamenteComTaxaAlta` | Borda — compounding acelerado | UnitTest |
+| `deveCalcularCorretamenteComValorInicialPequeno` | Borda — valor mínimo | UnitTest |
+| `deveCalcularCorretamenteComValorInicialAlto` | Borda — valor máximo / precisão | UnitTest |
+| `devePropagarSaldoFinalComoSaldoInicialDoMesSeguinte` | Borda — invariante encadeamento | UnitTest + ServiceTest |
+| `deveCalcularValorTotalJurosComoSomaDosJurosMensais` | Borda — coerência matemática | UnitTest + ServiceTest |
+| `deveLancarExcecaoQuandoIdNaoEncontrado` | Erro — ID inexistente | UnitTest + ServiceTest |
+| `deveRetornar404ParaIdInexistente` | Erro — HTTP 404 | ResourceTest |
+| `deveRetornar400ParaValorInicialNegativo` | Erro — validação entrada | ResourceTest |
+| `deveRetornar400ParaTaxaNegativa` | Erro — validação entrada | ResourceTest |
+| `deveRetornar400ParaPrazoZero` | Erro — validação entrada | ResourceTest |
+| `deveRetornar400ParaCamposAusentes` | Erro — validação entrada | ResourceTest |
+
+**Resultado final da sessão:** 28/28 testes · 11 unitários + 8 integração service + 9 integração resource · BUILD SUCCESS
+
+---
+
+## Sessão 9 — Replicação dos testes de borda como testes de integração
+
+### Motivação
+
+Os 6 testes de borda do `SimulacaoServiceUnitTest` (prazo longo, taxa pequena, taxa alta, valor pequeno, valor alto, 1 mês) validavam a lógica de negócio com repositório mockado. Faltava garantir que esses mesmos cenários funcionam com **H2 real, Hibernate real e transação real** — inclusive que as colunas `@Column(precision=19, scale=4)` persistem e recuperam valores extremos sem truncamento.
+
+### Testes adicionados ao `SimulacaoServiceTest`
+
+| Teste | Borda verificada |
+|---|---|
+| `deveCalcularCorretamenteParaPrazoLongo` | 360 meses — encadeamento e persistência de 360 itens |
+| `deveCalcularCorretamenteComTaxaPequena` | Taxa 0.01% — precisão preservada no ciclo completo com H2 |
+| `deveCalcularCorretamenteComTaxaAlta` | Taxa 5% com 2 meses — compounding acelerado persiste corretamente |
+| `deveCalcularCorretamenteComValorInicialPequeno` | Valor 0,01 — valor mínimo persistido e recuperado sem erro |
+| `deveCalcularCorretamenteComValorInicialAlto` | 999.999.999,99 — `NUMERIC(19,4)` suporta o valor sem truncamento |
+
+`deveCalcularCorretamentePara1Mes` já existia no `SimulacaoServiceTest` — não foi duplicado.
+
+### Reordenação do `SimulacaoServiceTest`
+
+Os testes foram reordenados para espelhar a sequência do `SimulacaoServiceUnitTest`, mantendo os testes exclusivos da camada de integração ao final:
+
+| # | Teste |
+|---|---|
+| 1 | `deveCalcularCorretamentePara1Mes` |
+| 2 | `deveCalcularCorretamenteParaPrazoLongo` |
+| 3 | `deveCalcularCorretamenteComTaxaPequena` |
+| 4 | `deveCalcularCorretamenteComTaxaAlta` |
+| 5 | `deveCalcularCorretamenteComValorInicialPequeno` |
+| 6 | `deveCalcularCorretamenteComValorInicialAlto` |
+| 7 | `deveGerarMemoriaComQuantidadeCorretaDeMeses` |
+| 8 | `devePropagarSaldoFinalComoSaldoInicialDoMesSeguinte` |
+| 9 | `deveAtribuirIdAposPersistencia` |
+| 10 | `deveRetornarTodosOsCamposDeEntrada` |
+| 11 | `deveLancarExcecaoQuandoIdNaoEncontrado` |
+| 12 | `deveRetornarSimulacaoJaPersistida` |
+| 13 | `deveCalcularValorTotalJurosComoSomaDosJurosMensais` |
+
+**Resultado final da sessão:** 33/33 testes · 11 unitários + 13 integração service + 9 integração resource · BUILD SUCCESS
+
+---
+
+## Sessão 10 — Atualização do README.md com detalhamento da suíte de testes
+
+Adicionada tabela de suíte de testes ao `README.md`, entre a seção de cobertura Jacoco e a seção de modo dev:
+
+| Classe | Tipo | Testes |
+|---|---|---|
+| `SimulacaoServiceUnitTest` | Unitários (Mockito) | 11 |
+| `SimulacaoServiceTest` | Integração — service + H2 | 13 |
+| `SimulacaoResourceTest` | Integração — HTTP (REST-Assured) | 9 |
+| **Total** | | **33** |
+
+---
+
+## Sessão 11 — Revisão final antes da entrega
+
+Realizada análise completa de todos os arquivos do projeto cruzando cada item com a matriz de avaliação do `desafio.pdf`. Nenhuma modificação necessária. Resultado:
+
+| Pilar | Verificação | Status |
+|---|---|---|
+| Requisitos funcionais | `POST /simulacoes`, `GET /simulacoes/{id}`, memória de cálculo, persistência | ✅ |
+| Precisão financeira | `BigDecimal` em todo o código de produção — nenhum `double`/`float` | ✅ |
+| Cobertura de testes | 33 testes · 100% Jacoco · unitários + integração · erros + bordas | ✅ |
+| OpenAPI / Swagger | `quarkus-smallrye-openapi` + `swagger-ui.always-include=true` | ✅ |
+| Persistência embutida | H2 in-memory · `drop-and-create` automático · sem Docker · sem SQL manual | ✅ |
+| HTTP codes | 201, 200, 400, 404 — `GlobalExceptionMapper` + `Response.status(CREATED)` | ✅ |
+| Clean Code | Camadas Resource → Service → Repository bem definidas | ✅ |
+| Execução 100% nativa | `mvnw` wrapper incluso — avaliador precisa apenas do Java 25 | ✅ |
+| README.md | Instruções, comando exato (`./mvnw test` e `.\mvnw test`), caminho do relatório Jacoco | ✅ |
+
+**Projeto aprovado para entrega.**
